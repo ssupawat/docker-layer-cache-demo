@@ -36,9 +36,4 @@ Cache entries: Actions → Management → Caches. Limits: 10 GB per repo,
 `type=gha` only works through `build-push-action` (it wires the cache-service
 token into buildkit). Passing `--cache-to type=gha` to `docker buildx build`
 in a plain `run:` step silently does nothing — verified the hard way.
-To use a run step, expose the runtime env first:
-
-```yaml
-- uses: crazy-max/ghaction-github-runtime@v3
-- run: docker buildx build --cache-from type=gha --cache-to type=gha,mode=max --load .
-```
+Use `build-push-action`.
