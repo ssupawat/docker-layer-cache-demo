@@ -27,8 +27,9 @@ jobs:
 
       - name: Smoke test
         run: |
-          docker run --rm -d -p 8000:8000 --name demo demo:latest
+          docker run -d -p 8000:8000 --name demo demo:latest
           sleep 1
+          docker ps -a --filter name=demo --format '{{.Status}}'
           docker logs demo
           curl --retry 5 --retry-delay 1 --retry-connrefused -fsS http://127.0.0.1:8000
           docker rm -f demo
