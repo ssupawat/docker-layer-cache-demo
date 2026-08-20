@@ -30,10 +30,3 @@ Layer order matters: least-frequent changes first, most-frequent last.
 
 Cache entries: Actions → Management → Caches. Limits: 10 GB per repo,
 ~7 days idle eviction.
-
-## Gotcha
-
-`type=gha` only works through `build-push-action` (it wires the cache-service
-token into buildkit). Passing `--cache-to type=gha` to `docker buildx build`
-in a plain `run:` step silently does nothing — verified the hard way.
-Use `build-push-action`.
