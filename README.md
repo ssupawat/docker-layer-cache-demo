@@ -1,9 +1,12 @@
 # Docker layer caching on GitHub Actions — demo
 
-Builds the Dockerfile with [docker/build-push-action] using the **GHA cache backend**:
+Builds the Dockerfile with a plain run step (`docker buildx build`) using the **GHA cache backend**:
 
-- `cache-from: type=gha` — restore layers from the GitHub Actions cache
-- `cache-to: type=gha,mode=max` — cache all intermediate layers (not just the final image)
+- `--cache-from type=gha` — restore layers from the GitHub Actions cache
+- `--cache-to type=gha,mode=max` — cache all intermediate layers (not just the final image)
+
+The standard alternative is [docker/build-push-action], which is just a wrapper
+around the same `docker buildx build` command with these flags as inputs.
 
 ## How the layers are laid out
 
