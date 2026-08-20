@@ -1,29 +1,38 @@
-# Docker layer caching on GitHub Actions — demo
+# Docker layer caching on GitHub Actions
 
-Builds the Dockerfile with [docker/build-push-action] using the **GHA cache backend**:
+Minimal demo: a 3-layer Dockerfile built in CI with the **GHA cache backend**,
+so unchanged layers are restored instead of rebuilt.
 
-- `cache-from: type=gha` — restore layers from the GitHub Actions cache
-- `cache-to: type=gha,mode=max` — cache all intermediate layers (not just the final image)
+```yaml
+- uses: docker/setup-buildx-action@v3
+- uses: docker/build-push-action@v6
+  with:
+    cache-from: type=gha
+    cache-to: type=gha,mode=max
+```
 
-Note: passing these as raw `docker buildx build` flags in a run step does **not** work —
-the action's toolkit wires up the cache-service token that the `type=gha` backend needs.
+## Layers
 
-## How the layers are laid out
-
-| Layer | Content | Changes when |
-|-------|---------|--------------|
-| 1 | `apt-get install curl` | almost never |
+| Layer | Content | Rebuilds when |
+|-------|---------|---------------|
+| 1 | `apt-get install curl` | Dockerfile changes |
 | 2 | `pip install -r requirements.txt` | requirements.txt changes |
-| 3 | `COPY server.py` | source changes |
+| 3 | `COPY server.py` | any source change |
 
-## Try it
+Layer order matters: least-frequent changes first, most-frequent last.
 
-1. **Run 1 (cold)** — Actions → "Docker build" → "Run workflow". Everything builds from scratch (~1–2 min).
-2. **Run 2 (no changes)** — run again. Log shows `CACHED` for every layer (~30s).
-3. **Run 3 (source-only change)** — edit `server.py`, push. Layers 1–2 stay `CACHED`, only layer 3 rebuilds.
-4. **Run 4 (dep change)** — add a package to `requirements.txt`, push. Layers 1 and 2 rebuild, 3 rebuilds too.
+## Verified results (ubuntu-latest)
 
-Look for `CACHED` lines in the "Build image" step log. Cache entries live in
-Actions → Management → Caches (~10 GB limit per repo, evicted after ~7 days unused).
+| Run | Change | Build step | Layers |
+|-----|--------|-----------|--------|
+| 1 | — (cold) | ~27s | all built |
+| 4 | source only | ~3s | apt + pip `CACHED`, only `COPY` rebuilt |
 
-[docker/build-push-action]: https://github.com/docker/build-push-action
+Cache entries: Actions → Management → Caches. Limits: 10 GB per repo,
+~7 days idle eviction.
+
+## Gotcha
+
+`type=gha` only works through `build-push-action` (it wires the cache-service
+token into buildkit). Passing `--cache-to type=gha` to `docker buildx build`
+in a plain `run:` step silently does nothing — verified the hard way.
